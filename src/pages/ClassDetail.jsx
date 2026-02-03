@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useEffect, useState, useRef } from "react";
+import { useParams, useNavigate, Link, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import {
@@ -46,8 +46,10 @@ function todayYYYYMMDD() {
 export default function ClassDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const isAdmin = user?.role === "ADMIN" || user?.role === "Admin";
+  const reportsCardRef = useRef(null);
 
   const [cls, setCls] = useState(null);
   const [teachers, setTeachers] = useState([]);
@@ -146,6 +148,11 @@ export default function ClassDetailPage() {
     };
   }, [id, isAdmin, reportType, reportDate]);
 
+  useEffect(() => {
+    if (!cls || location.hash !== "#reports") return;
+    reportsCardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [cls, location.hash]);
+
   async function handleSubmit(e) {
     e.preventDefault();
     if (!id || !form.class_name.trim()) return;
@@ -194,10 +201,20 @@ export default function ClassDetailPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center gap-4">
         <Button variant="ghost" size="sm" asChild>
           <Link to="/classes">← Classes</Link>
         </Button>
+        <Link
+          to="#reports"
+          className="text-sm text-primary hover:underline"
+          onClick={(e) => {
+            e.preventDefault();
+            reportsCardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }}
+        >
+          Jump to Attendance reports (daily / weekly / monthly)
+        </Link>
       </div>
       <Card>
         <CardHeader>
@@ -331,11 +348,11 @@ export default function ClassDetailPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card id="reports" ref={reportsCardRef}>
         <CardHeader>
           <CardTitle>Attendance reports</CardTitle>
           <CardDescription>
-            Daily, weekly, or monthly summary for this class
+            Daily, weekly, or monthly summary for this class. Choose type and date below.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -398,20 +415,26 @@ export default function ClassDetailPage() {
                 </>
               )}
               {reportType === "weekly" && (
-                <div className="flex flex-wrap gap-4 text-sm">
-                  <span><strong>Week:</strong> {reportData.week_start} to {reportData.week_end}</span>
-                  <span><strong>Present:</strong> {reportData.present_count}</span>
-                  <span><strong>Absent:</strong> {reportData.absent_count}</span>
-                  <span><strong>Total marked:</strong> {reportData.total_marked}</span>
+                <div className="rounded-lg border bg-muted/30 p-4">
+                  <p className="text-sm font-medium text-muted-foreground mb-2">Weekly summary</p>
+                  <div className="flex flex-wrap gap-4 text-sm">
+                    <span><strong>Week:</strong> {reportData.week_start} to {reportData.week_end}</span>
+                    <span><strong>Present:</strong> {reportData.present_count}</span>
+                    <span><strong>Absent:</strong> {reportData.absent_count}</span>
+                    <span><strong>Total marked:</strong> {reportData.total_marked}</span>
+                  </div>
                 </div>
               )}
               {reportType === "monthly" && (
-                <div className="flex flex-wrap gap-4 text-sm">
-                  <span><strong>Month:</strong> {reportData.month_start} to {reportData.month_end}</span>
-                  <span><strong>Present:</strong> {reportData.present_count}</span>
-                  <span><strong>Absent:</strong> {reportData.absent_count}</span>
-                  <span><strong>Total marked:</strong> {reportData.total_marked}</span>
-                  <span><strong>Attendance %:</strong> {reportData.attendance_percent ?? 0}%</span>
+                <div className="rounded-lg border bg-muted/30 p-4">
+                  <p className="text-sm font-medium text-muted-foreground mb-2">Monthly summary</p>
+                  <div className="flex flex-wrap gap-4 text-sm">
+                    <span><strong>Month:</strong> {reportData.month_start} to {reportData.month_end}</span>
+                    <span><strong>Present:</strong> {reportData.present_count}</span>
+                    <span><strong>Absent:</strong> {reportData.absent_count}</span>
+                    <span><strong>Total marked:</strong> {reportData.total_marked}</span>
+                    <span><strong>Attendance %:</strong> {reportData.attendance_percent ?? 0}%</span>
+                  </div>
                 </div>
               )}
             </div>

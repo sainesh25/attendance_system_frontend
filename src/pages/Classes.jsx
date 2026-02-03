@@ -306,6 +306,14 @@ export default function ClassesPage() {
                       <TableCell className="text-right">
                         <Button
                           size="sm"
+                          variant="outline"
+                          className="mr-2"
+                          asChild
+                        >
+                          <Link to={`/classes/${cls.id}#reports`}>Reports</Link>
+                        </Button>
+                        <Button
+                          size="sm"
                           className="mr-2"
                           onClick={() => openEdit(cls)}
                         >
