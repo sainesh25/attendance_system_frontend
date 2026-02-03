@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { useAuth } from "@/lib/auth-context";
 import { getProfile, registerTeacher } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,11 +33,22 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function TeachersPage() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({ username: "", email: "", password: "" });
+
+  const isAdmin = user?.role === "ADMIN" || user?.role === "Admin";
+
+  useEffect(() => {
+    if (!user) return;
+    if (!isAdmin) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [user, isAdmin, navigate]);
 
   async function load() {
     setLoading(true);
@@ -51,8 +64,8 @@ export default function TeachersPage() {
   }
 
   useEffect(() => {
-    load();
-  }, []);
+    if (isAdmin) load();
+  }, [isAdmin]);
 
   async function handleAddTeacher(e) {
     e.preventDefault();
@@ -86,6 +99,10 @@ export default function TeachersPage() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (user && !isAdmin) {
+    return null;
   }
 
   return (

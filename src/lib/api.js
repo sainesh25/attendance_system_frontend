@@ -98,9 +98,9 @@ export async function refreshToken() {
   return data;
 }
 
-// Profile
+// Current user (teacher/admin) – used after login for nav and dashboard
 export async function getMe() {
-  const { data } = await api.get("/api/profile/");
+  const { data } = await api.get("/api/me/");
   return data;
 }
 
@@ -165,6 +165,67 @@ export async function updateStudent(id, body) {
 
 export async function deleteStudent(id) {
   const { data } = await api.delete(`/api/students/${id}/delete/`);
+  return data;
+}
+
+// Attendance (teacher/admin scan QR)
+export async function markAttendanceByQR(qrData) {
+  const { data } = await api.post("/api/attendance/mark/", { qr_data: qrData });
+  return data;
+}
+
+// Today's attendance records for a class (IsAuthenticated)
+export async function getTodayAttendanceByClass(classId) {
+  const { data } = await api.get(`/api/attendance/today/${classId}/`);
+  return data;
+}
+
+// Reports (Teacher/Admin)
+export async function getDailyReport(classId, date) {
+  const params = date ? { date } : {};
+  const { data } = await api.get(`/api/reports/daily/${classId}/`, { params });
+  return data;
+}
+
+export async function getWeeklyReport(classId, date) {
+  const params = date ? { date } : {};
+  const { data } = await api.get(`/api/reports/weekly/${classId}/`, { params });
+  return data;
+}
+
+export async function getMonthlyReport(classId, date) {
+  const params = date ? { date } : {};
+  const { data } = await api.get(`/api/reports/monthly/${classId}/`, { params });
+  return data;
+}
+
+export async function getStudentAttendanceHistory(studentId, fromDate, toDate) {
+  const params = {};
+  if (fromDate) params.from = fromDate;
+  if (toDate) params.to = toDate;
+  const { data } = await api.get(`/api/reports/student/${studentId}/`, { params });
+  return data;
+}
+
+// Admin dashboard (IsAdmin)
+export async function getAdminDashboardOverview() {
+  const { data } = await api.get("/api/dashboard/admin/overview/");
+  return data;
+}
+
+export async function getAdminClasswiseToday() {
+  const { data } = await api.get("/api/dashboard/admin/classwise-today/");
+  return data;
+}
+
+// Teacher dashboard (Teacher only)
+export async function getTeacherDashboardOverview() {
+  const { data } = await api.get("/api/dashboard/teacher/overview/");
+  return data;
+}
+
+export async function getTeacherAbsentToday() {
+  const { data } = await api.get("/api/dashboard/teacher/absent-today/");
   return data;
 }
 

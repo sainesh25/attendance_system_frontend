@@ -22,6 +22,7 @@ export function AuthProvider({ children }) {
   const loadUser = async () => {
     try {
       const data = await getMe();
+      // /api/me/ returns a single user object
       const userData = Array.isArray(data) ? data[0] : data;
 
       if (userData) {

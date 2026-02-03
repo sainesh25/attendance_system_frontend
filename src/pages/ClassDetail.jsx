@@ -1,7 +1,16 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
-import { getClass, updateClass, getProfile } from "@/lib/api";
+import { useAuth } from "@/lib/auth-context";
+import {
+  getClass,
+  updateClass,
+  getProfile,
+  getTodayAttendanceByClass,
+  getDailyReport,
+  getWeeklyReport,
+  getMonthlyReport,
+} from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,11 +28,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+
+function todayYYYYMMDD() {
+  const d = new Date();
+  return d.toISOString().slice(0, 10);
+}
 
 export default function ClassDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isAdmin = user?.role === "ADMIN" || user?.role === "Admin";
+
   const [cls, setCls] = useState(null);
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -34,9 +59,21 @@ export default function ClassDetailPage() {
     class_teacher: "",
   });
   const [editing, setEditing] = useState(false);
+  const [todayRecords, setTodayRecords] = useState([]);
+  const [reportType, setReportType] = useState("daily");
+  const [reportDate, setReportDate] = useState(() => todayYYYYMMDD());
+  const [reportData, setReportData] = useState(null);
+  const [reportLoading, setReportLoading] = useState(false);
 
   useEffect(() => {
-    if (!id) return;
+    if (!user) return;
+    if (!isAdmin) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [user, isAdmin, navigate]);
+
+  useEffect(() => {
+    if (!id || !isAdmin) return;
     let cancelled = false;
     async function load() {
       try {
@@ -68,7 +105,46 @@ export default function ClassDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [id, navigate]);
+  }, [id, isAdmin, navigate]);
+
+  useEffect(() => {
+    if (!id || !isAdmin) return;
+    let cancelled = false;
+    getTodayAttendanceByClass(id)
+      .then((data) => {
+        if (!cancelled) setTodayRecords(Array.isArray(data) ? data : []);
+      })
+      .catch(() => {
+        if (!cancelled) setTodayRecords([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id, isAdmin]);
+
+  useEffect(() => {
+    if (!id || !isAdmin) return;
+    let cancelled = false;
+    setReportLoading(true);
+    const fetchReport = () => {
+      if (reportType === "daily") return getDailyReport(id, reportDate);
+      if (reportType === "weekly") return getWeeklyReport(id, reportDate);
+      return getMonthlyReport(id, reportDate);
+    };
+    fetchReport()
+      .then((data) => {
+        if (!cancelled) setReportData(data);
+      })
+      .catch(() => {
+        if (!cancelled) setReportData(null);
+      })
+      .finally(() => {
+        if (!cancelled) setReportLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id, isAdmin, reportType, reportDate]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -215,6 +291,136 @@ export default function ClassDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Today&apos;s attendance</CardTitle>
+          <CardDescription>
+            Records marked for today ({todayYYYYMMDD()})
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {todayRecords.length === 0 ? (
+            <p className="text-muted-foreground text-sm">No attendance marked today.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Student</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Marked at</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {todayRecords.map((rec) => (
+                  <TableRow key={rec.id}>
+                    <TableCell>{rec.student_name ?? "—"}</TableCell>
+                    <TableCell>{rec.status === "P" ? "Present" : rec.status === "A" ? "Absent" : rec.status}</TableCell>
+                    <TableCell>{rec.date ?? "—"}</TableCell>
+                    <TableCell>
+                      {rec.marked_at
+                        ? new Date(rec.marked_at).toLocaleString()
+                        : "—"}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Attendance reports</CardTitle>
+          <CardDescription>
+            Daily, weekly, or monthly summary for this class
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Label htmlFor="report-type" className="whitespace-nowrap">Type</Label>
+              <Select value={reportType} onValueChange={setReportType}>
+                <SelectTrigger id="report-type" className="w-[120px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="daily">Daily</SelectItem>
+                  <SelectItem value="weekly">Weekly</SelectItem>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="report-date" className="whitespace-nowrap">Date</Label>
+              <Input
+                id="report-date"
+                type="date"
+                value={reportDate}
+                onChange={(e) => setReportDate(e.target.value)}
+              />
+            </div>
+          </div>
+          {reportLoading ? (
+            <Skeleton className="h-24 w-full" />
+          ) : reportData ? (
+            <div className="space-y-4">
+              {reportType === "daily" && (
+                <>
+                  <div className="flex flex-wrap gap-4 text-sm">
+                    <span><strong>Date:</strong> {reportData.date}</span>
+                    <span><strong>Present:</strong> {reportData.total_present}</span>
+                    <span><strong>Absent:</strong> {reportData.total_absent}</span>
+                    <span><strong>Total marked:</strong> {reportData.total_marked}</span>
+                  </div>
+                  {reportData.records?.length > 0 && (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Student</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Date</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {reportData.records.map((rec) => (
+                          <TableRow key={rec.id}>
+                            <TableCell>{rec.student_name ?? "—"}</TableCell>
+                            <TableCell>{rec.status === "P" ? "Present" : rec.status === "A" ? "Absent" : rec.status}</TableCell>
+                            <TableCell>{rec.date ?? "—"}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </>
+              )}
+              {reportType === "weekly" && (
+                <div className="flex flex-wrap gap-4 text-sm">
+                  <span><strong>Week:</strong> {reportData.week_start} to {reportData.week_end}</span>
+                  <span><strong>Present:</strong> {reportData.present_count}</span>
+                  <span><strong>Absent:</strong> {reportData.absent_count}</span>
+                  <span><strong>Total marked:</strong> {reportData.total_marked}</span>
+                </div>
+              )}
+              {reportType === "monthly" && (
+                <div className="flex flex-wrap gap-4 text-sm">
+                  <span><strong>Month:</strong> {reportData.month_start} to {reportData.month_end}</span>
+                  <span><strong>Present:</strong> {reportData.present_count}</span>
+                  <span><strong>Absent:</strong> {reportData.absent_count}</span>
+                  <span><strong>Total marked:</strong> {reportData.total_marked}</span>
+                  <span><strong>Attendance %:</strong> {reportData.attendance_percent ?? 0}%</span>
+                </div>
+              )}
+            </div>
+          ) : !reportLoading && (
+            <p className="text-muted-foreground text-sm">No report data for this period.</p>
+          )}
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>Students in this class</CardTitle>

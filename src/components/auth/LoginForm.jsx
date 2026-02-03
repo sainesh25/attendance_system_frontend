@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { login } from "@/lib/api";
-import { setTokens } from "@/lib/auth";
+import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +18,7 @@ export default function LoginForm({
   description = "Enter your credentials to continue",
 }) {
   const navigate = useNavigate();
+  const { login: authLogin } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -29,8 +29,7 @@ export default function LoginForm({
     setError("");
     setLoading(true);
     try {
-      const data = await login({ username, password });
-      setTokens(data.access, data.refresh);
+      await authLogin(username, password);
       navigate("/dashboard", { replace: true });
     } catch (err) {
       setError(

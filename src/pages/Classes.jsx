@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { useAuth } from "@/lib/auth-context";
 import {
   getClasses,
   createClass,
@@ -55,6 +56,10 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function ClassesPage() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const isAdmin = user?.role === "ADMIN" || user?.role === "Admin";
+
   const [classes, setClasses] = useState([]);
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -68,6 +73,13 @@ export default function ClassesPage() {
     class_teacher: "",
   });
   const [editingId, setEditingId] = useState(null);
+
+  useEffect(() => {
+    if (!user) return;
+    if (!isAdmin) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [user, isAdmin, navigate]);
 
   async function load() {
     setLoading(true);
@@ -88,8 +100,8 @@ export default function ClassesPage() {
   }
 
   useEffect(() => {
-    load();
-  }, []);
+    if (isAdmin) load();
+  }, [isAdmin]);
 
   function openEdit(cls) {
     setEditingId(cls.id);

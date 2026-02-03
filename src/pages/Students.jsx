@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
+import { useAuth } from "@/lib/auth-context";
 import {
   getStudents,
   createStudent,
@@ -55,8 +56,12 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function StudentsPage() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const classFilter = searchParams.get("class");
+  const isAdmin = user?.role === "ADMIN" || user?.role === "Admin";
+
   const [students, setStudents] = useState([]);
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -71,6 +76,13 @@ export default function StudentsPage() {
     guardian_mobile: "",
   });
   const [editingId, setEditingId] = useState(null);
+
+  useEffect(() => {
+    if (!user) return;
+    if (!isAdmin) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [user, isAdmin, navigate]);
 
   async function load() {
     setLoading(true);
@@ -91,8 +103,8 @@ export default function StudentsPage() {
   }
 
   useEffect(() => {
-    load();
-  }, []);
+    if (isAdmin) load();
+  }, [isAdmin]);
 
   const filteredStudents = classFilter
     ? students.filter((s) => String(s.student_class) === classFilter)
@@ -345,6 +357,7 @@ export default function StudentsPage() {
                   <TableHead>Roll no</TableHead>
                   <TableHead>Class</TableHead>
                   <TableHead>Guardian mobile</TableHead>
+                  <TableHead className="w-16">QR</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -352,7 +365,7 @@ export default function StudentsPage() {
                 {filteredStudents.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={5}
+                      colSpan={6}
                       className="text-center text-muted-foreground"
                     >
                       No students yet
@@ -372,6 +385,25 @@ export default function StudentsPage() {
                       <TableCell>{s.roll_no}</TableCell>
                       <TableCell>{s.class_name || s.student_class}</TableCell>
                       <TableCell>{s.guardian_mobile || "—"}</TableCell>
+                      <TableCell>
+                        {s.qr_code_url ? (
+                          <a
+                            href={s.qr_code_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-block size-10 overflow-hidden rounded border bg-background p-0.5"
+                            title={`QR code for ${s.full_name}`}
+                          >
+                            <img
+                              src={s.qr_code_url}
+                              alt={`QR for ${s.full_name}`}
+                              className="size-full object-contain"
+                            />
+                          </a>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right">
                         <Button
                           size="sm"

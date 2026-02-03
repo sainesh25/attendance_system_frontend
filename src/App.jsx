@@ -10,6 +10,7 @@ import ClassDetail from "@/pages/ClassDetail";
 import Students from "@/pages/Students";
 import StudentDetail from "@/pages/StudentDetail";
 import Teachers from "@/pages/Teachers";
+import ScanAttendance from "@/pages/ScanAttendance";
 
 export default function App() {
   return (
@@ -63,6 +64,14 @@ export default function App() {
         element={
           <ProtectedLayout>
             <Teachers />
+          </ProtectedLayout>
+        }
+      />
+      <Route
+        path="/scan"
+        element={
+          <ProtectedLayout>
+            <ScanAttendance />
           </ProtectedLayout>
         }
       />

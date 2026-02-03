@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
-import { getStudent, updateStudent, getClasses } from "@/lib/api";
+import { useAuth } from "@/lib/auth-context";
+import { getStudent, updateStudent, getClasses, getStudentAttendanceHistory } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,11 +20,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function StudentDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isAdmin = user?.role === "ADMIN" || user?.role === "Admin";
+
   const [student, setStudent] = useState(null);
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -35,9 +47,20 @@ export default function StudentDetailPage() {
     guardian_mobile: "",
   });
   const [editing, setEditing] = useState(false);
+  const [historyFrom, setHistoryFrom] = useState("");
+  const [historyTo, setHistoryTo] = useState("");
+  const [historyData, setHistoryData] = useState(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   useEffect(() => {
-    if (!id) return;
+    if (!user) return;
+    if (!isAdmin) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [user, isAdmin, navigate]);
+
+  useEffect(() => {
+    if (!id || !isAdmin) return;
     let cancelled = false;
     async function load() {
       try {
@@ -70,7 +93,30 @@ export default function StudentDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [id, navigate]);
+  }, [id, isAdmin, navigate]);
+
+  useEffect(() => {
+    if (!id || !isAdmin) return;
+    let cancelled = false;
+    setHistoryLoading(true);
+    getStudentAttendanceHistory(
+      id,
+      historyFrom || undefined,
+      historyTo || undefined
+    )
+      .then((data) => {
+        if (!cancelled) setHistoryData(data);
+      })
+      .catch(() => {
+        if (!cancelled) setHistoryData(null);
+      })
+      .finally(() => {
+        if (!cancelled) setHistoryLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id, isAdmin, historyFrom, historyTo]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -235,6 +281,73 @@ export default function StudentDetailPage() {
                 Edit student
               </Button>
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Attendance history</CardTitle>
+          <CardDescription>
+            Summary and records; optionally filter by date range (leave empty for all time)
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Label htmlFor="history-from" className="whitespace-nowrap">From</Label>
+              <Input
+                id="history-from"
+                type="date"
+                value={historyFrom}
+                onChange={(e) => setHistoryFrom(e.target.value)}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="history-to" className="whitespace-nowrap">To</Label>
+              <Input
+                id="history-to"
+                type="date"
+                value={historyTo}
+                onChange={(e) => setHistoryTo(e.target.value)}
+              />
+            </div>
+          </div>
+          {historyLoading ? (
+            <Skeleton className="h-24 w-full" />
+          ) : historyData ? (
+            <div className="space-y-4">
+              <div className="flex flex-wrap gap-4 text-sm">
+                <span><strong>Present:</strong> {historyData.present_count}</span>
+                <span><strong>Absent:</strong> {historyData.absent_count}</span>
+                <span><strong>Total days:</strong> {historyData.total_days}</span>
+                <span><strong>Attendance %:</strong> {historyData.attendance_percent ?? 0}%</span>
+              </div>
+              {historyData.records?.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Class</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {historyData.records.map((rec) => (
+                      <TableRow key={rec.id}>
+                        <TableCell>{rec.date ?? "—"}</TableCell>
+                        <TableCell>{rec.status === "P" ? "Present" : rec.status === "A" ? "Absent" : rec.status}</TableCell>
+                        <TableCell>{rec.class_name ?? "—"}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <p className="text-muted-foreground text-sm">No attendance records in this range.</p>
+              )}
+            </div>
+          ) : !historyLoading && (
+            <p className="text-muted-foreground text-sm">No history data.</p>
           )}
         </CardContent>
       </Card>
