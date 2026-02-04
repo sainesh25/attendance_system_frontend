@@ -7,7 +7,7 @@ import {
   createClass,
   updateClass,
   deleteClass,
-  getProfile,
+  getTeachers,
 } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -84,12 +84,12 @@ export default function ClassesPage() {
   async function load() {
     setLoading(true);
     try {
-      const [classesData, profileData] = await Promise.all([
+      const [classesData, teachersData] = await Promise.all([
         getClasses().catch(() => []),
-        getProfile().catch(() => []),
+        getTeachers().catch(() => []),
       ]);
       setClasses(Array.isArray(classesData) ? classesData : []);
-      setTeachers(Array.isArray(profileData) ? profileData : []);
+      setTeachers(Array.isArray(teachersData) ? teachersData : []);
     } catch {
       toast.error("Failed to load data");
       setClasses([]);

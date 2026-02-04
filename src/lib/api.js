@@ -67,8 +67,9 @@ api.interceptors.response.use(
       const { data } = await axios.post(`${baseURL}/api/auth/refresh/`, {
         refresh,
       });
-      const { access } = data;
-      setTokens(access, refresh);
+      const access = data.access ?? data.access_token;
+      const newRefresh = data.refresh ?? data.refresh_token ?? refresh;
+      setTokens(access, newRefresh);
       processQueue(null, access);
       originalRequest.headers.Authorization = `Bearer ${access}`;
       return api(originalRequest);
@@ -100,19 +101,30 @@ export async function refreshToken() {
 
 // Current user (teacher/admin) – used after login for nav and dashboard
 export async function getMe() {
-  const { data } = await api.get("/api/me/");
+  // Backend exposes current user at GET /api/profile/
+  const { data } = await api.get("/api/profile/");
   return data;
 }
 
-// Users list (Admin)
+// Current user only (single object; same as getMe via /api/profile/)
 export async function getProfile() {
   const { data } = await api.get("/api/profile/");
   return data;
 }
 
-// Teachers
+// Teachers list (Admin) – GET /api/teachers/ (role=TEACHER, not deleted)
+export async function getTeachers() {
+  const { data } = await api.get("/api/teachers/");
+  return data;
+}
+
 export async function registerTeacher(body) {
   const { data } = await api.post("/api/register-teacher/", body);
+  return data;
+}
+
+export async function deleteTeacher(teacherId) {
+  const { data } = await api.delete(`/api/teachers/${teacherId}/delete/`);
   return data;
 }
 

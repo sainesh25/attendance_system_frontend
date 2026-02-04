@@ -22,7 +22,7 @@ export function AuthProvider({ children }) {
   const loadUser = async () => {
     try {
       const data = await getMe();
-      // /api/me/ returns a single user object
+      // getMe() returns a single user object (from backend GET /api/profile/)
       const userData = Array.isArray(data) ? data[0] : data;
 
       if (userData) {
@@ -32,9 +32,15 @@ export function AuthProvider({ children }) {
           role: userData.role || "User",
         };
         setUser(normalizedUser);
+        return normalizedUser;
       }
+      return null;
     } catch (error) {
       console.error("Failed to load user:", error);
+      // If we can't fetch the current user, the stored token is unusable.
+      clearTokens();
+      setUser(null);
+      return null;
     } finally {
       setLoading(false);
     }
@@ -43,12 +49,17 @@ export function AuthProvider({ children }) {
   const login = async (username, password) => {
     try {
       const data = await apiLogin({ username, password });
-      setTokens(data.access, data.refresh);
+      const access = data.access ?? data.access_token;
+      const refresh = data.refresh ?? data.refresh_token;
+      if (access) setTokens(access, refresh);
 
       if (data.user) {
         setUser(data.user);
       } else {
-        await loadUser();
+        const loaded = await loadUser();
+        if (!loaded) {
+          throw new Error("Login succeeded but failed to load user profile");
+        }
       }
 
       return data;

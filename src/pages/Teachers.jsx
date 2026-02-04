@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
-import { getProfile, registerTeacher } from "@/lib/api";
+import { getTeachers, registerTeacher, deleteTeacher } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,6 +23,15 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Table,
   TableBody,
   TableCell,
@@ -39,6 +48,7 @@ export default function TeachersPage() {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [deleteId, setDeleteId] = useState(null);
   const [form, setForm] = useState({ username: "", email: "", password: "" });
 
   const isAdmin = user?.role === "ADMIN" || user?.role === "Admin";
@@ -53,13 +63,26 @@ export default function TeachersPage() {
   async function load() {
     setLoading(true);
     try {
-      const data = await getProfile();
+      const data = await getTeachers();
       setUsers(Array.isArray(data) ? data : []);
     } catch (err) {
       toast.error(err.response?.data?.detail || "Failed to load teachers");
       setUsers([]);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!deleteId) return;
+    try {
+      await deleteTeacher(deleteId);
+      toast.success("Teacher removed");
+      setDeleteId(null);
+      load();
+    } catch (err) {
+      const msg = err.response?.data?.error ?? err.response?.data?.detail ?? "Failed to delete teacher";
+      toast.error(msg);
     }
   }
 
@@ -183,8 +206,8 @@ export default function TeachersPage() {
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>All users</CardTitle>
-          <CardDescription>Teachers and admins</CardDescription>
+          <CardTitle>All teachers</CardTitle>
+          <CardDescription>Active teachers (soft-deleted are hidden). Delete removes from list and unassigns from classes.</CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -197,13 +220,14 @@ export default function TeachersPage() {
                   <TableHead>Username</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Role</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {users.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center text-muted-foreground">
-                      No users yet
+                    <TableCell colSpan={5} className="text-center text-muted-foreground">
+                      No teachers yet
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -213,6 +237,18 @@ export default function TeachersPage() {
                       <TableCell>{u.username}</TableCell>
                       <TableCell>{u.email || "—"}</TableCell>
                       <TableCell>{u.role}</TableCell>
+                      <TableCell className="text-right">
+                        {u.role === "TEACHER" && (
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            disabled={u.id === user?.id}
+                            onClick={() => setDeleteId(u.id)}
+                          >
+                            {u.id === user?.id ? "Current user" : "Delete"}
+                          </Button>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))
                 )}
@@ -221,6 +257,28 @@ export default function TeachersPage() {
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove teacher?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will soft-delete the teacher (they will be hidden from the list and unassigned from any classes). You can undo by re-activating the user in the database.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                await handleDelete();
+              }}
+            >
+              Delete
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

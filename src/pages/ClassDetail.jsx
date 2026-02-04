@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import {
   getClass,
   updateClass,
-  getProfile,
+  getTeachers,
   getTodayAttendanceByClass,
   getDailyReport,
   getWeeklyReport,
@@ -79,9 +79,9 @@ export default function ClassDetailPage() {
     let cancelled = false;
     async function load() {
       try {
-        const [classData, profileData] = await Promise.all([
+        const [classData, teachersData] = await Promise.all([
           getClass(id),
-          getProfile().catch(() => []),
+          getTeachers().catch(() => []),
         ]);
         if (!cancelled) {
           setCls(classData);
@@ -92,7 +92,7 @@ export default function ClassDetailPage() {
               ? String(classData.class_teacher)
               : "",
           });
-          setTeachers(Array.isArray(profileData) ? profileData : []);
+          setTeachers(Array.isArray(teachersData) ? teachersData : []);
         }
       } catch (err) {
         if (!cancelled) {
