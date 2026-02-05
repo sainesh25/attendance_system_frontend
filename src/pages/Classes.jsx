@@ -59,6 +59,8 @@ export default function ClassesPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const isAdmin = user?.role === "ADMIN" || user?.role === "Admin";
+  const isTeacher = user?.role === "TEACHER" || user?.role === "Teacher";
+  const canAccess = isAdmin || isTeacher;
 
   const [classes, setClasses] = useState([]);
   const [teachers, setTeachers] = useState([]);
@@ -76,10 +78,10 @@ export default function ClassesPage() {
 
   useEffect(() => {
     if (!user) return;
-    if (!isAdmin) {
+    if (!canAccess) {
       navigate("/dashboard", { replace: true });
     }
-  }, [user, isAdmin, navigate]);
+  }, [user, canAccess, navigate]);
 
   async function load() {
     setLoading(true);
@@ -100,8 +102,8 @@ export default function ClassesPage() {
   }
 
   useEffect(() => {
-    if (isAdmin) load();
-  }, [isAdmin]);
+    if (canAccess) load();
+  }, [canAccess]);
 
   function openEdit(cls) {
     setEditingId(cls.id);

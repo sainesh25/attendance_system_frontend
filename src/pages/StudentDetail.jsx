@@ -35,6 +35,8 @@ export default function StudentDetailPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const isAdmin = user?.role === "ADMIN" || user?.role === "Admin";
+  const isTeacher = user?.role === "TEACHER" || user?.role === "Teacher";
+  const canAccess = isAdmin || isTeacher;
 
   const [student, setStudent] = useState(null);
   const [classes, setClasses] = useState([]);
@@ -54,13 +56,13 @@ export default function StudentDetailPage() {
 
   useEffect(() => {
     if (!user) return;
-    if (!isAdmin) {
+    if (!canAccess) {
       navigate("/dashboard", { replace: true });
     }
-  }, [user, isAdmin, navigate]);
+  }, [user, canAccess, navigate]);
 
   useEffect(() => {
-    if (!id || !isAdmin) return;
+    if (!id || !canAccess) return;
     let cancelled = false;
     async function load() {
       try {
@@ -93,10 +95,10 @@ export default function StudentDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [id, isAdmin, navigate]);
+  }, [id, canAccess, navigate]);
 
   useEffect(() => {
-    if (!id || !isAdmin) return;
+    if (!id || !canAccess) return;
     let cancelled = false;
     setHistoryLoading(true);
     getStudentAttendanceHistory(
@@ -116,7 +118,7 @@ export default function StudentDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [id, isAdmin, historyFrom, historyTo]);
+  }, [id, canAccess, historyFrom, historyTo]);
 
   async function handleSubmit(e) {
     e.preventDefault();

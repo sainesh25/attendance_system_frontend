@@ -49,6 +49,8 @@ export default function ClassDetailPage() {
   const location = useLocation();
   const { user } = useAuth();
   const isAdmin = user?.role === "ADMIN" || user?.role === "Admin";
+  const isTeacher = user?.role === "TEACHER" || user?.role === "Teacher";
+  const canAccess = isAdmin || isTeacher;
   const reportsCardRef = useRef(null);
 
   const [cls, setCls] = useState(null);
@@ -69,13 +71,13 @@ export default function ClassDetailPage() {
 
   useEffect(() => {
     if (!user) return;
-    if (!isAdmin) {
+    if (!canAccess) {
       navigate("/dashboard", { replace: true });
     }
-  }, [user, isAdmin, navigate]);
+  }, [user, canAccess, navigate]);
 
   useEffect(() => {
-    if (!id || !isAdmin) return;
+    if (!id || !canAccess) return;
     let cancelled = false;
     async function load() {
       try {
@@ -107,10 +109,10 @@ export default function ClassDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [id, isAdmin, navigate]);
+  }, [id, canAccess, navigate]);
 
   useEffect(() => {
-    if (!id || !isAdmin) return;
+    if (!id || !canAccess) return;
     let cancelled = false;
     getTodayAttendanceByClass(id)
       .then((data) => {
@@ -122,10 +124,10 @@ export default function ClassDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [id, isAdmin]);
+  }, [id, canAccess]);
 
   useEffect(() => {
-    if (!id || !isAdmin) return;
+    if (!id || !canAccess) return;
     let cancelled = false;
     setReportLoading(true);
     const fetchReport = () => {
@@ -146,7 +148,7 @@ export default function ClassDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [id, isAdmin, reportType, reportDate]);
+  }, [id, canAccess, reportType, reportDate]);
 
   useEffect(() => {
     if (!cls || location.hash !== "#reports") return;

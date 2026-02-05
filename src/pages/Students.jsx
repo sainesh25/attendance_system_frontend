@@ -61,6 +61,8 @@ export default function StudentsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const classFilter = searchParams.get("class");
   const isAdmin = user?.role === "ADMIN" || user?.role === "Admin";
+  const isTeacher = user?.role === "TEACHER" || user?.role === "Teacher";
+  const canAccess = isAdmin || isTeacher;
 
   const [students, setStudents] = useState([]);
   const [classes, setClasses] = useState([]);
@@ -79,10 +81,10 @@ export default function StudentsPage() {
 
   useEffect(() => {
     if (!user) return;
-    if (!isAdmin) {
+    if (!canAccess) {
       navigate("/dashboard", { replace: true });
     }
-  }, [user, isAdmin, navigate]);
+  }, [user, canAccess, navigate]);
 
   async function load() {
     setLoading(true);
@@ -103,8 +105,8 @@ export default function StudentsPage() {
   }
 
   useEffect(() => {
-    if (isAdmin) load();
-  }, [isAdmin]);
+    if (canAccess) load();
+  }, [canAccess]);
 
   const filteredStudents = classFilter
     ? students.filter((s) => String(s.student_class) === classFilter)

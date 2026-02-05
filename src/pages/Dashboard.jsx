@@ -258,7 +258,7 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle>Classes</CardTitle>
             <CardDescription>
-              Manage classes. Daily, weekly, and monthly attendance reports are on each class page (open a class, then use &quot;Reports&quot; or &quot;Jump to Attendance reports&quot;).
+              Manage classes.
             </CardDescription>
           </CardHeader>
           <CardContent>

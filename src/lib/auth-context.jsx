@@ -71,7 +71,7 @@ export function AuthProvider({ children }) {
   const logout = () => {
     clearTokens();
     setUser(null);
-    navigate("/login", { replace: true });
+    navigate("/", { replace: true });
   };
 
   return (
