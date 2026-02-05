@@ -37,6 +37,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ArrowLeft } from "lucide-react";
 
 function todayYYYYMMDD() {
   const d = new Date();
@@ -205,7 +206,10 @@ export default function ClassDetailPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-4">
         <Button variant="ghost" size="sm" asChild>
-          <Link to="/classes">← Classes</Link>
+          <Link to="/classes" className="flex items-center gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            Classes
+          </Link>
         </Button>
         <Link
           to="#reports"
@@ -229,7 +233,7 @@ export default function ClassDetailPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {editing ? (
+          {editing && isAdmin ? (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid gap-2">
                 <Label htmlFor="class_name">Class name</Label>
@@ -303,9 +307,11 @@ export default function ClassDetailPage() {
                 <span className="text-muted-foreground">Class teacher:</span>{" "}
                 {cls.class_teacher_name || "—"}
               </p>
-              <Button onClick={() => setEditing(true)} className="mt-4">
-                Edit class
-              </Button>
+              {isAdmin && (
+                <Button onClick={() => setEditing(true)} className="mt-4">
+                  Edit class
+                </Button>
+              )}
             </div>
           )}
         </CardContent>

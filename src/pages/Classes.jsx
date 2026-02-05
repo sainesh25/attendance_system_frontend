@@ -8,6 +8,7 @@ import {
   updateClass,
   deleteClass,
   getTeachers,
+  finalizeAttendance,
 } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,6 +54,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ArrowLeft, Eye } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function ClassesPage() {
@@ -75,6 +77,7 @@ export default function ClassesPage() {
     class_teacher: "",
   });
   const [editingId, setEditingId] = useState(null);
+  const [finalizingClassId, setFinalizingClassId] = useState(null);
 
   useEffect(() => {
     if (!user) return;
@@ -168,6 +171,27 @@ export default function ClassesPage() {
     }
   }
 
+  async function handleFinalize(classId) {
+    setFinalizingClassId(classId);
+    try {
+      const res = await finalizeAttendance(classId);
+      toast.success(
+        res.message +
+          (res.present != null && res.absent != null
+            ? ` — Present: ${res.present}, Absent: ${res.absent}`
+            : "")
+      );
+    } catch (err) {
+      toast.error(
+        err.response?.data?.error ||
+          err.response?.data?.detail ||
+          "Failed to finalize attendance"
+      );
+    } finally {
+      setFinalizingClassId(null);
+    }
+  }
+
   async function handleDelete() {
     if (!deleteId) return;
     setSubmitting(true);
@@ -185,11 +209,20 @@ export default function ClassesPage() {
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="sm" asChild>
+          <Link to="/dashboard" className="flex items-center gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            Dashboard
+          </Link>
+        </Button>
+      </div>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Classes</h1>
           <p className="text-muted-foreground">Manage school classes</p>
         </div>
+        {isAdmin && (
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
             <Button>Add class</Button>
@@ -266,6 +299,7 @@ export default function ClassesPage() {
             </form>
           </DialogContent>
         </Dialog>
+        )}
       </div>
       <Card>
         <CardHeader>
@@ -305,7 +339,18 @@ export default function ClassesPage() {
                       </TableCell>
                       <TableCell>{cls.section || "—"}</TableCell>
                       <TableCell>{cls.class_teacher_name || "—"}</TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right flex items-center justify-end gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="mr-2"
+                          asChild
+                          title="View class"
+                        >
+                          <Link to={`/classes/${cls.id}`}>
+                            <Eye className="h-4 w-4" />
+                          </Link>
+                        </Button>
                         <Button
                           size="sm"
                           variant="outline"
@@ -316,18 +361,32 @@ export default function ClassesPage() {
                         </Button>
                         <Button
                           size="sm"
-                          className="mr-2"
-                          onClick={() => openEdit(cls)}
+                          variant="outline"
+                          className="cursor-pointer"
+                          disabled={finalizingClassId === cls.id}
+                          onClick={() => handleFinalize(cls.id)}
+                          title="Finalize today's attendance (mark unmarked as absent)"
                         >
-                          Edit
+                          {finalizingClassId === cls.id ? "Finalizing..." : "Finalize"}
                         </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => setDeleteId(cls.id)}
-                        >
-                          Delete
-                        </Button>
+                        {isAdmin && (
+                          <>
+                            <Button
+                              size="sm"
+                              className="mr-2"
+                              onClick={() => openEdit(cls)}
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => setDeleteId(cls.id)}
+                            >
+                              Delete
+                            </Button>
+                          </>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))

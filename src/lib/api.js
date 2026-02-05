@@ -59,7 +59,7 @@ api.interceptors.response.use(
 
     if (!refresh) {
       clearTokens();
-      if (typeof window !== "undefined") window.location.href = "/login";
+      if (typeof window !== "undefined") window.location.href = "/";
       return Promise.reject(err);
     }
 
@@ -76,7 +76,7 @@ api.interceptors.response.use(
     } catch (refreshErr) {
       processQueue(refreshErr, null);
       clearTokens();
-      if (typeof window !== "undefined") window.location.href = "/login";
+      if (typeof window !== "undefined") window.location.href = "/";
       return Promise.reject(refreshErr);
     } finally {
       isRefreshing = false;
@@ -189,6 +189,12 @@ export async function markAttendanceByQR(qrData) {
 // Today's attendance records for a class (IsAuthenticated)
 export async function getTodayAttendanceByClass(classId) {
   const { data } = await api.get(`/api/attendance/today/${classId}/`);
+  return data;
+}
+
+// Finalize attendance for a class for today (Teacher/Admin) – marks unmarked as absent
+export async function finalizeAttendance(classId) {
+  const { data } = await api.post(`/api/attendance/finalize/${classId}/`);
   return data;
 }
 

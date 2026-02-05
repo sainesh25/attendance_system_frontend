@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { getTeachers, registerTeacher, deleteTeacher } from "@/lib/api";
@@ -40,6 +40,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ArrowLeft } from "lucide-react";
 
 export default function TeachersPage() {
   const { user } = useAuth();
@@ -130,6 +131,14 @@ export default function TeachersPage() {
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="sm" asChild>
+          <Link to="/dashboard" className="flex items-center gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            Dashboard
+          </Link>
+        </Button>
+      </div>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Teachers</h1>

@@ -10,7 +10,7 @@ export default function ProtectedLayout({ children }) {
 
   useEffect(() => {
     if (!loading && !user) {
-      navigate("/login", { replace: true });
+      navigate("/", { replace: true });
     }
   }, [user, loading, navigate]);
 

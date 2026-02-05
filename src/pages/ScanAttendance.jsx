@@ -12,7 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { QrCode } from "lucide-react";
+import { ArrowLeft, QrCode } from "lucide-react";
 
 const COOLDOWN_MS = 3000;
 
@@ -37,6 +37,7 @@ export default function ScanAttendancePage() {
   const navigate = useNavigate();
   const scannerRef = useRef(null);
   const lastScannedRef = useRef({ text: "", at: 0 });
+  const cancelledRef = useRef(false);
   const [cameraError, setCameraError] = useState(null);
   const [scanning, setScanning] = useState(false);
 
@@ -57,58 +58,83 @@ export default function ScanAttendancePage() {
   useEffect(() => {
     if (!isTeacherOrAdmin || !user) return;
 
+    cancelledRef.current = false;
     let html5QrCode = null;
 
     async function startScanner() {
       try {
+        const container = document.getElementById("qr-reader");
+        if (container) container.innerHTML = "";
+
         const cameras = await Html5Qrcode.getCameras();
+        if (cancelledRef.current) return;
         if (!cameras || cameras.length === 0) {
           setCameraError("No camera found");
           return;
         }
-        const cameraId = cameras[0].id;
         html5QrCode = new Html5Qrcode("qr-reader");
+        if (cancelledRef.current) return;
         scannerRef.current = html5QrCode;
-        await html5QrCode.start(
-          cameraId,
-          {
-            fps: 10,
-            qrbox: { width: 250, height: 250 },
-          },
-          (decodedText) => {
-            const now = Date.now();
-            if (
-              lastScannedRef.current.text === decodedText &&
-              now - lastScannedRef.current.at < COOLDOWN_MS
-            ) {
-              return;
-            }
-            lastScannedRef.current = { text: decodedText, at: now };
+        const config = {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+        };
+        const onSuccess = (decodedText) => {
+          const now = Date.now();
+          if (
+            lastScannedRef.current.text === decodedText &&
+            now - lastScannedRef.current.at < COOLDOWN_MS
+          ) {
+            return;
+          }
+          lastScannedRef.current = { text: decodedText, at: now };
 
-            const toSend = parseQrToSend(decodedText);
-            markAttendanceByQR(toSend)
-              .then((res) => {
-                toast.success(res?.message ?? "Attendance marked successfully");
-              })
-              .catch((err) => {
-                const status = err.response?.status;
-                const detail =
-                  err.response?.data?.error ??
-                  err.response?.data?.detail ??
-                  "Failed to mark attendance";
-                if (status === 409) {
-                  toast.warning("Already marked today");
-                } else if (status === 404) {
-                  toast.error("Student not found");
-                } else {
-                  toast.error(detail);
-                }
-              });
-          },
-          () => {}
-        );
-        setScanning(true);
-        setCameraError(null);
+          const toSend = parseQrToSend(decodedText);
+          markAttendanceByQR(toSend)
+            .then((res) => {
+              toast.success(res?.message ?? "Attendance marked successfully");
+            })
+            .catch((err) => {
+              const status = err.response?.status;
+              const detail =
+                err.response?.data?.error ??
+                err.response?.data?.detail ??
+                "Failed to mark attendance";
+              if (status === 409) {
+                toast.warning("Already marked today");
+              } else if (status === 404) {
+                toast.error("Student not found");
+              } else {
+                toast.error(detail);
+              }
+            });
+        };
+        const onError = () => {};
+        try {
+          try {
+            await html5QrCode.start(
+              { facingMode: "environment" },
+              config,
+              onSuccess,
+              onError
+            );
+          } catch {
+            if (cancelledRef.current) return;
+            await html5QrCode.start(
+              cameras[0].id,
+              config,
+              onSuccess,
+              onError
+            );
+          }
+          setScanning(true);
+          setCameraError(null);
+        } catch (err) {
+          console.error("Camera error:", err);
+          setCameraError(
+            err?.message || "Could not access camera. Check permissions."
+          );
+        }
       } catch (err) {
         console.error("Camera error:", err);
         setCameraError(
@@ -119,6 +145,7 @@ export default function ScanAttendancePage() {
 
     startScanner();
     return () => {
+      cancelledRef.current = true;
       const scanner = scannerRef.current;
       if (scanner) {
         scanner
@@ -127,7 +154,14 @@ export default function ScanAttendancePage() {
             scanner.clear();
             scannerRef.current = null;
           })
-          .catch(() => {});
+          .catch(() => {})
+          .finally(() => {
+            const container = document.getElementById("qr-reader");
+            if (container) container.innerHTML = "";
+          });
+      } else {
+        const container = document.getElementById("qr-reader");
+        if (container) container.innerHTML = "";
       }
     };
   }, [isTeacherOrAdmin, user]);
@@ -140,7 +174,10 @@ export default function ScanAttendancePage() {
     <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="sm" asChild>
-          <Link to="/dashboard">← Dashboard</Link>
+          <Link to="/dashboard" className="flex items-center gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            Dashboard
+          </Link>
         </Button>
       </div>
       <Card>

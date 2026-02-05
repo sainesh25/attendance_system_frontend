@@ -29,6 +29,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ArrowLeft } from "lucide-react";
 
 export default function StudentDetailPage() {
   const { id } = useParams();
@@ -180,7 +181,10 @@ export default function StudentDetailPage() {
     <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="sm" asChild>
-          <Link to="/students">← Students</Link>
+          <Link to="/students" className="flex items-center gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            Students
+          </Link>
         </Button>
       </div>
       <Card>
@@ -191,7 +195,7 @@ export default function StudentDetailPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {editing ? (
+          {editing && isAdmin ? (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid gap-2">
                 <Label htmlFor="full_name">Full name</Label>
@@ -279,9 +283,11 @@ export default function StudentDetailPage() {
                 <span className="text-muted-foreground">Guardian mobile:</span>{" "}
                 {student.guardian_mobile || "—"}
               </p>
-              <Button onClick={() => setEditing(true)} className="mt-4">
-                Edit student
-              </Button>
+              {isAdmin && (
+                <Button onClick={() => setEditing(true)} className="mt-4">
+                  Edit student
+                </Button>
+              )}
             </div>
           )}
         </CardContent>

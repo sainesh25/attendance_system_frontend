@@ -53,6 +53,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ArrowLeft, Eye } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function StudentsPage() {
@@ -225,11 +226,20 @@ export default function StudentsPage() {
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="sm" asChild>
+          <Link to="/dashboard" className="flex items-center gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            Dashboard
+          </Link>
+        </Button>
+      </div>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Students</h1>
           <p className="text-muted-foreground">Manage students and roll numbers</p>
         </div>
+        {isAdmin && (
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
             <Button>Add student</Button>
@@ -318,6 +328,7 @@ export default function StudentsPage() {
             </form>
           </DialogContent>
         </Dialog>
+        )}
       </div>
 
       {classes.length > 0 && (
@@ -406,21 +417,36 @@ export default function StudentsPage() {
                           <span className="text-muted-foreground text-xs">—</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="flex items-center justify-end">
                         <Button
                           size="sm"
+                          variant="outline"
                           className="mr-2"
-                          onClick={() => openEdit(s)}
+                          asChild
+                          title="View student"
                         >
-                          Edit
+                          <Link to={`/students/${s.id}`}>
+                            <Eye className="h-4 w-4" />
+                          </Link>
                         </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => setDeleteId(s.id)}
-                        >
-                          Delete
-                        </Button>
+                        {isAdmin && (
+                          <>
+                            <Button
+                              size="sm"
+                              className="mr-2"
+                              onClick={() => openEdit(s)}
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => setDeleteId(s.id)}
+                            >
+                              Delete
+                            </Button>
+                          </>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))
